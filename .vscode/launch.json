@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run main (48h forecast)",
+      "type": "python",
+      "request": "launch",
+      "module": "src.main",
+      "console": "integratedTerminal",
+      "args": []
+    },
+    {
+      "name": "Run main (fast smoke test)",
+      "type": "python",
+      "request": "launch",
+      "module": "src.main",
+      "console": "integratedTerminal",
+      "args": [
+        "--fast"
+      ]
+    }
+  ]
+}
