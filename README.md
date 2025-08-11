@@ -52,7 +52,7 @@ The goal was to simulate **what a real implementation might look like in an indu
 
 ---
 
-## 📊 Example Results
+## Example Results
 
 ### Forecast (48h)
 ![Forecast](reports/figures/forecast.png)
@@ -65,7 +65,7 @@ The goal was to simulate **what a real implementation might look like in an indu
 
 ---
 
-## 📈 Results Interpretation
+## Results Interpretation
 
 **Forecast plot** – Shows the LSTM's predicted demand curve over the next 48 hours, overlaid on recent historical demand. The model captures daily demand cycles and temperature effects.
 
@@ -79,7 +79,7 @@ The goal was to simulate **what a real implementation might look like in an indu
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 .
 ├── data/ # Simulated hourly demand + temperature CSV
 ├── reports/
@@ -99,7 +99,7 @@ The goal was to simulate **what a real implementation might look like in an indu
 
 ---
 
-## 🚀 Running in VS Code
+## Running in VS Code
 
 1. **Open the project** in VS Code.
 2. **Install dependencies**:  
@@ -122,7 +122,7 @@ The goal was to simulate **what a real implementation might look like in an indu
 
 ---
 
-## 🎯 Why This Project Matters
+## Why This Project Matters
 
 This is a **hybrid project** demonstrating:
 - **Machine Learning for Time Series** (AI-powered forecasting)
