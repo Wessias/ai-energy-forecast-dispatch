@@ -1,123 +1,141 @@
-# AI Time Series + Optimization: Energy Demand Forecasting & Economic Dispatch
+# AI-Driven Energy Demand Forecasting & Economic Dispatch Optimization
 
-**What it is:** A hybrid project that forecasts short-term electricity demand with ML and then optimizes
-a simple generation + battery dispatch to meet that demand at minimum cost.
+This project combines **deep learning time-series forecasting** with **operations research optimization** to tackle a realistic energy grid scheduling problem.
 
-- **AI/ML**: **PyTorch LSTM** sequence model (direct multi-horizon decoder) trained with engineered lag, rolling, and Fourier features.
-- **Time series**: Hourly data with strong daily/weekly/annual seasonality + temperature effects.
-- **Optimization**: Linear program (SciPy's `linprog`) for economic dispatch with baseload, peaker, and a battery.
-- **Stack**: Python 3, NumPy, Pandas, scikit-learn, SciPy, Matplotlib.
+It predicts **48 hours** of electricity demand using a **PyTorch LSTM** and then solves an **economic dispatch problem** that schedules:
+- A **baseload generator** (low-cost, slow to adjust)
+- A **peaker plant** (high-cost, flexible)
+- A **battery energy storage system (BESS)** (bidirectional power flow with efficiency losses)
 
-> This is designed to be **portfolio-ready**: clean structure, reproducible, documented, and visual.
+The optimizer minimizes generation costs while respecting:
+- Generator capacity limits
+- Ramping constraints for baseload
+- Battery charging/discharging limits and efficiencies
+- State of charge bounds
+
+If demand exceeds physical capacity, a **load-shedding slack** variable (with a large penalty) ensures feasibility while signaling unmet load.
 
 ---
 
-## Project Structure
+## 📜 Project Context
 
-```
-ai_timeseries_optimization/
-├── data/
-│   └── demand_weather.csv         # Simulated hourly data (2023-01-01 .. 2025-06-30)
-├── models/
-│   └── (saved models & scalers)
+This was a **summer project** I undertook to push myself beyond just “making something that works.”  
+I wanted the **final code to feel professional and deployment-ready**, so I included:
+- A modular **pipeline structure**
+- Clear **VS Code debug/run tasks**
+- Automated **data loading, model training, forecasting, optimization, and plotting**
+- Configurable parameters and CLI flags for real-world flexibility
+
+The goal was to simulate **what a real implementation might look like in an industry setting** while still keeping it approachable as a portfolio project.
+
+---
+
+## 🔍 Key Features
+
+**AI Forecasting**
+- Model: PyTorch `nn.LSTM` with MLP output head
+- Input features:
+  - Historical demand & temperature
+  - Hour/day-of-week cyclic encodings
+- Direct multi-horizon output (predicts all future hours in one shot)
+- Configurable horizon (default: 48h) and training window length
+
+**Optimization**
+- Linear program formulated and solved with SciPy’s HiGHS solver
+- Objective: Minimize total cost = baseload cost + peaker cost + battery cycling cost + (optional) load-shedding penalty
+- Auto-scales generation capacities based on forecast demand
+
+**Visualization**
+- **Forecast plot**: Historical demand + LSTM forecast
+- **Dispatch plot**: Optimal schedule for baseload, peaker, battery, and any load shed
+- **State of Charge (SOC) plot**: Battery SOC profile across the forecast horizon
+
+---
+
+## 📊 Example Results
+
+### Forecast (48h)
+![Forecast](reports/figures/forecast.png)
+
+### Optimal Dispatch
+![Dispatch](reports/figures/dispatch.png)
+
+### Battery State of Charge
+![SOC](reports/figures/soc.png)
+
+---
+
+## 📈 Results Interpretation
+
+**Forecast plot** – Shows the LSTM's predicted demand curve over the next 48 hours, overlaid on recent historical demand. The model captures daily demand cycles and temperature effects.
+
+**Dispatch plot** – Breaks down how the optimizer schedules each asset to meet demand:
+- **Baseload** runs steadily near its optimal output.
+- **Peaker** fills short-term gaps or spikes in demand.
+- **Battery** charges during low-cost surplus and discharges during peaks.
+- **Load shed** appears only if demand exceeds total capacity — a signal of physical constraint violations.
+
+**SOC plot** – Tracks the battery’s state of charge over the forecast horizon. Shows how the optimizer strategically uses storage to shift energy from low-demand to high-demand hours.
+
+---
+
+## 📂 Project Structure
+.
+├── data/ # Simulated hourly demand + temperature CSV
 ├── reports/
-│   └── figures/                   # Matplotlib output
+│ ├── figures/ # Plots: forecast.png, dispatch.png, soc.png
+│ └── forecast_48h.csv # Forecast data
+│ └── dispatch_48h.csv # Dispatch schedule
 ├── src/
-│   ├── data_simulation.py         # Creates the dataset with realistic patterns
-│   ├── features.py                # Time-series feature engineering
-│   ├── forecaster.py              # ML training & multi-step forecasting
-│   ├── optimizer.py               # Economic dispatch LP using SciPy linprog
-│   ├── evaluation.py              # Metrics & plotting
-│   └── main.py                    # End-to-end pipeline
+│ ├── main.py # CLI entrypoint, orchestrates pipeline
+│ ├── forecaster_lstm.py # PyTorch LSTM model definition & training
+│ ├── optimizer.py # Linear programming dispatch solver
+│ ├── evaluation.py # Plotting functions
+│ └── utils.py # Misc helpers
 ├── requirements.txt
-└── README.md
-```
-
----
-
-## Quickstart
-
-1. **Create a virtual environment (recommended)**  
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # Windows: .venv\Scripts\activate
-   ```
-
-2. **Install dependencies**  
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run the project**  
-   ```bash
-   python -m src.main
-   ```
-
-This will:
-- Generate or reuse `data/demand_weather.csv`
-- Train ML models
-- Produce **48-hour** demand forecasts
-- Solve the **economic dispatch** LP
-- Save plots in `reports/figures` and print summary metrics
-
----
-
-## Modeling Details
-
-### Forecasting
-- **Targets**: Hourly demand (MW)
-- **Horizon**: 48 hours ahead, trained as a set of **direct models** (one per horizon step)
-- **Models**: PyTorch `nn.LSTM` with a small MLP head to predict the full horizon in one shot
-- **Features**:
-  - Lags: 1..48 hours
-  - Rolling means: 24h, 168h (weekly)
-  - Calendar: hour-of-day, day-of-week, month
-  - Fourier seasonal terms (daily, weekly, annual)
-  - Temperature + lagged temperature
-
-### Optimization
-- Decision variables per hour *t* (continuous LP):
-  - `g_base_t`  : baseload generation (MW) — cheap, capacity-limited, ramp-limited
-  - `g_peak_t`  : peaker generation (MW) — expensive, flexible
-  - `ch_t`      : battery charge power (MW)
-  - `dis_t`     : battery discharge power (MW)
-  - `soc_t`     : battery state of charge (MWh)
-- Objective: **minimize cost** = sum(c_base * g_base_t + c_peak * g_peak_t + eps*(ch_t + dis_t))
-- Constraints:
-  - **Power balance**: g_base_t + g_peak_t + dis_t - ch_t = demand_hat_t
-  - **Capacity limits** for generators and battery power
-  - **SOC dynamics** with efficiency and bounds, fixed initial SOC
-  - **Ramping** for baseload: |g_base_t - g_base_{t-1}| <= ramp
-  - (LP relaxation; no binaries. A small epsilon discourages charge & discharge simultaneously.)
-
----
-
-## Why this is a strong portfolio piece
-
-- Shows **end-to-end thinking**: data → ML forecasting → optimization → business objective.
-- Uses **engineering-relevant** constraints (ramping, storage efficiency) that mirror real systems.
-- Clean, reproducible code with visual outputs and clear README.
-
----
-
-## Extending the project
-
-- Swap GBMs for **LSTMs/Transformers** (PyTorch or Keras) for sequence modeling.
-- Add **price uncertainty** and solve a **stochastic** or **robust** dispatch.
-- Add **emissions** or **renewable availability** constraints and objectives.
-- Enforce **no simultaneous charge/discharge** using MILP (e.g., with OR-Tools or Pyomo + CBC/HiGHS).
-
----
-
-## License
-
-MIT
+├── README.md
+└── .vscode/ # VS Code launch/tasks configs
 
 
 ---
 
-## VS Code Quickstart
-1. **Open Folder** in VS Code → this project.
-2. `Ctrl+Shift+P` → **Tasks: Run Task** → **Install requirements** (creates venv + installs deps).
-3. Press **F5** to run **Run main (48h forecast)**, or choose **Run main (fast smoke test)**.
-4. Alternatively: `python run.py` or `make run`.
+## 🚀 Running in VS Code
+
+1. **Open the project** in VS Code.
+2. **Install dependencies**:  
+   Press `Ctrl+Shift+P` → **Tasks: Run Task** → **Install requirements**.
+3. **Run the pipeline**:  
+   - Press `F5` with debug configuration set to **Run main (48h forecast)** for a full run.  
+   - Or choose **Run main (fast smoke test)** for a quicker demo.
+4. Outputs:
+   - Validation MAE & RMSE in the terminal
+   - Figures in `reports/figures/`
+   - CSVs in `reports/`
+
+---
+
+## 🛠 Customization
+
+- Change `--horizon` or `--fast` when running `python -m src.main` to adjust forecast length and training time.
+- Modify capacities, ramp rates, or costs in `src/optimizer.py` to simulate different grid conditions.
+- Replace the LSTM with another forecasting model by editing `src/forecaster_lstm.py`.
+
+---
+
+## 🎯 Why This Project Matters
+
+This is a **hybrid project** demonstrating:
+- **Machine Learning for Time Series** (AI-powered forecasting)
+- **Operations Research** (cost-minimizing dispatch under constraints)
+- **Software Engineering** (modular design, CLI, visualization, reproducibility)
+
+It’s directly relevant to:
+- Data Science / ML Engineering roles
+- Energy analytics
+- Optimization & simulation engineering
+- AI applications in industrial contexts
+
+---
+
+*Built as part of a summer learning project to bridge theory and practice, with a focus on creating production-quality code and reproducible workflows.*
+
