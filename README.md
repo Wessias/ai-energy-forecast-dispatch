@@ -80,21 +80,23 @@ The goal was to simulate **what a real implementation might look like in an indu
 ---
 
 ## Project Structure
-.
-├── data/ # Simulated hourly demand + temperature CSV
-├── reports/
-│ ├── figures/ # Plots: forecast.png, dispatch.png, soc.png
-│ └── forecast_48h.csv # Forecast data
-│ └── dispatch_48h.csv # Dispatch schedule
-├── src/
-│ ├── main.py # CLI entrypoint, orchestrates pipeline
-│ ├── forecaster_lstm.py # PyTorch LSTM model definition & training
-│ ├── optimizer.py # Linear programming dispatch solver
-│ ├── evaluation.py # Plotting functions
-│ └── utils.py # Misc helpers
-├── requirements.txt
-├── README.md
-└── .vscode/ # VS Code launch/tasks configs
+
+```plaintext
+data/                          # Simulated hourly demand + temperature CSV
+reports/
+├── figures/                   # Plots: forecast.png, dispatch.png, soc.png
+├── forecast_48h.csv           # Forecast data
+└── dispatch_48h.csv           # Dispatch schedule
+src/
+├── main.py                    # CLI entrypoint, orchestrates pipeline
+├── forecaster_lstm.py         # PyTorch LSTM model definition & training
+├── optimizer.py               # Linear programming dispatch solver
+├── evaluation.py              # Plotting functions
+└── utils.py                   # Misc helpers
+requirements.txt
+README.md
+.vscode/                       # VS Code launch/tasks configs
+```
 
 
 ---
